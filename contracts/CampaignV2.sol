@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Campaign {
+contract CampaignV2 is Initializable {
     struct Project {
         address owner; // project owner
         uint256 fundingGoal; // goal of the project
@@ -14,7 +14,7 @@ contract Campaign {
         mapping(address => uint256) pledges; // mapping of pledges
     }
 
-    IERC20 public immutable myToken; // interface to crowdfund token
+    IERC20 public myToken; // interface to crowdfund token
     uint256 public projectCounter; // counter of the project
     mapping(uint256 => Project) public projects; // list of projects
 
@@ -29,13 +29,17 @@ contract Campaign {
     event FundsRefunded(uint256 projectId, address funder, uint256 amount);
     event FundWithdrawn(uint256 projectId, uint256 amount);
 
-    constructor(address tokenAddress) {
+    function initialize(address tokenAddress) public initializer {
         myToken = IERC20(tokenAddress);
     }
 
     modifier onlyProjectOwner(uint256 projectId) {
         require(projects[projectId].owner == msg.sender, "Not project owner");
         _;
+    }
+
+    function version() public pure returns (uint) {
+        return 2;
     }
 
     function createProject(uint256 fundingGoal, uint256 duration) external {

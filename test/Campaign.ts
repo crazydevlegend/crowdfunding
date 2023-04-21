@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { expect } from "chai";
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { ContractFactory, Contract } from "ethers";
 
 describe("Campaign", function () {
@@ -23,9 +23,22 @@ describe("Campaign", function () {
     token = await Token.deploy(TOTAL_SUPPLY);
     await token.deployed();
 
-    Campaign = await ethers.getContractFactory("Campaign");
-    campaign = await Campaign.deploy(token.address);
+    Campaign = await ethers.getContractFactory("CampaignV1");
+    campaign = await upgrades.deployProxy(Campaign, [token.address], {
+      initializer: "initialize",
+    });
     await campaign.deployed();
+  });
+
+  describe("Upgradeability", async () => {
+    it("Before upgrading: version() should 1", async () => {
+      expect(await campaign.version()).to.equal(1);
+    });
+    it("After upgrading: version() should 2", async () => {
+      const CampaignV2 = await ethers.getContractFactory("CampaignV2");
+      campaign = await upgrades.upgradeProxy(campaign.address, CampaignV2);
+      expect(await campaign.version()).to.equal(2);
+    });
   });
 
   describe("Project Owner", async () => {
